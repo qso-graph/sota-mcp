@@ -1,3 +1,4 @@
+<!-- mcp-name: io.github.qso-graph/sota-mcp -->
 # sota-mcp
 
 MCP server for [Summits on the Air (SOTA)](https://www.sota.org.uk/) — live spots, activation alerts, summit info, nearby summits, and activator stats through any MCP-compatible AI assistant.
