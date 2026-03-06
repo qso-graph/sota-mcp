@@ -1,4 +1,4 @@
-"""MCP server for Summits on the Air — summit lookup, activator stats, spots."""
+"""MCP server for Summits on the Air — summit lookup, spots, alerts, nearby summits."""
 
 from __future__ import annotations
 

@@ -1,17 +1,17 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.qso-graph/sota-mcp",
-  "description": "Summits on the Air MCP server. Summit lookup, activator stats, chaser records, spots.",
+  "description": "Summits on the Air MCP server. Summit lookup, spots, alerts, nearby summits.",
   "repository": {
     "url": "https://github.com/qso-graph/sota-mcp",
     "source": "github"
   },
-  "version": "0.1.3",
+  "version": "0.1.4",
   "packages": [
     {
       "registryType": "pypi",
       "identifier": "sota-mcp",
-      "version": "0.1.3",
+      "version": "0.1.4",
       "transport": { "type": "stdio" }
     }
   ],

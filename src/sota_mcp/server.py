@@ -15,7 +15,7 @@ mcp = FastMCP(
     version=__version__,
     instructions=(
         "MCP server for Summits on the Air (SOTA) — live spots, "
-        "activation alerts, summit info, nearby summits, and activator stats. "
+        "activation alerts, summit info, and nearby summits. "
         "All public endpoints, no authentication required."
     ),
 )
@@ -134,23 +134,6 @@ def sota_summits_near(
             limit=limit,
         )
         return {"total": len(summits), "summits": summits}
-    except Exception as e:
-        return {"error": str(e)}
-
-
-@mcp.tool()
-def sota_activator_stats(callsign: str) -> dict[str, Any]:
-    """Get SOTA activator profile and statistics.
-
-    Args:
-        callsign: Callsign to look up (e.g., KI7MT, G4YSS).
-
-    Returns:
-        Activator stats including total activations, unique summits,
-        QSO count, points, and recent activation history.
-    """
-    try:
-        return _get_client().activator_stats(callsign)
     except Exception as e:
         return {"error": str(e)}
 

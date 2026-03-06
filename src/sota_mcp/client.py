@@ -388,11 +388,3 @@ class SOTAClient:
         self._cache_set(key, data, _NEAR_TTL)
         return data
 
-    def activator_stats(self, callsign: str) -> dict[str, Any]:
-        """Get activator stats — not available via api2.sota.org.uk."""
-        call = callsign.upper()
-        return {
-            "callsign": call,
-            "error": "Activator stats are not available from the SOTA API. "
-                     "Visit https://www.sota.org.uk/ to look up activator profiles.",
-        }

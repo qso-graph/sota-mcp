@@ -1,7 +1,7 @@
 <!-- mcp-name: io.github.qso-graph/sota-mcp -->
 # sota-mcp
 
-MCP server for [Summits on the Air (SOTA)](https://www.sota.org.uk/) — live spots, activation alerts, summit info, nearby summits, and activator stats through any MCP-compatible AI assistant.
+MCP server for [Summits on the Air (SOTA)](https://www.sota.org.uk/) — live spots, activation alerts, summit info, and nearby summits through any MCP-compatible AI assistant.
 
 Part of the [QSO-Graph](https://qso-graph.io/) project. **No authentication required** — uses the public [SOTA API](https://api2.sota.org.uk/) exclusively.
 
@@ -19,7 +19,6 @@ pip install sota-mcp
 | `sota_alerts` | Upcoming scheduled activation alerts |
 | `sota_summit_info` | Summit details by SOTA reference code |
 | `sota_summits_near` | Find summits near coordinates (geospatial search) |
-| `sota_activator_stats` | Activator profile, stats, and recent activation history |
 
 ## Quick Start
 
@@ -118,8 +117,6 @@ Add to `~/.gemini/settings.json` (global) or `.gemini/settings.json` (project):
 > "Tell me about summit W7I/SI-001"
 
 > "What summits are near Boise, Idaho?"
-
-> "Show me KI7MT's SOTA activator stats"
 
 > "Any SOTA alerts for this weekend?"
 
