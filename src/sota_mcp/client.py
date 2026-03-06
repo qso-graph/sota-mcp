@@ -1,8 +1,9 @@
-"""SOTA API client — SOTLAS + SOTALive public endpoints."""
+"""SOTA API client — api2.sota.org.uk public endpoints only."""
 
 from __future__ import annotations
 
 import json
+import math
 import os
 import threading
 import time
@@ -12,14 +13,13 @@ from typing import Any
 
 from . import __version__
 
-_SOTLAS = "https://api.sotl.as"
-_SOTA_API = "https://api2.sota.org.uk"
+_BASE = "https://api2.sota.org.uk"
 
 # Cache TTLs
 _SPOTS_TTL = 60.0  # 1 minute
 _ALERTS_TTL = 300.0  # 5 minutes
 _SUMMIT_TTL = 86400.0  # 24 hours
-_STATS_TTL = 3600.0  # 1 hour
+_REGION_TTL = 86400.0  # 24 hours
 _NEAR_TTL = 300.0  # 5 minutes
 
 # Rate limiting: 200ms minimum between requests
@@ -30,6 +30,18 @@ def _is_mock() -> bool:
     return os.getenv("SOTA_MCP_MOCK") == "1"
 
 
+def _haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    """Great circle distance in km between two points."""
+    R = 6371.0
+    dlat = math.radians(lat2 - lat1)
+    dlon = math.radians(lon2 - lon1)
+    a = (math.sin(dlat / 2) ** 2
+         + math.cos(math.radians(lat1))
+         * math.cos(math.radians(lat2))
+         * math.sin(dlon / 2) ** 2)
+    return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+
+
 # ---------------------------------------------------------------------------
 # Mock data
 # ---------------------------------------------------------------------------
@@ -37,45 +49,42 @@ def _is_mock() -> bool:
 _MOCK_SPOTS = [
     {
         "id": 123456,
-        "timestamp": "2026-03-04T18:30:00Z",
+        "timeStamp": "2026-03-04T18:30:00",
         "activatorCallsign": "KI7MT",
+        "associationCode": "W7I",
         "summitCode": "W7I/SI-001",
-        "summitName": "Borah Peak",
+        "summitDetails": "Borah Peak, 3859m, 10 points",
         "frequency": "14.062",
         "mode": "CW",
         "comments": "CQ SOTA",
-        "posterCallsign": "KI7MT",
-        "association": "W7I",
-        "points": 10,
+        "callsign": "KI7MT",
     },
     {
         "id": 123457,
-        "timestamp": "2026-03-04T19:15:00Z",
+        "timeStamp": "2026-03-04T19:15:00",
         "activatorCallsign": "G4YSS",
+        "associationCode": "G",
         "summitCode": "G/LD-001",
-        "summitName": "Helvellyn",
+        "summitDetails": "Helvellyn, 950m, 8 points",
         "frequency": "7.032",
         "mode": "CW",
         "comments": "QRV 40m CW",
-        "posterCallsign": "G4OBK",
-        "association": "G",
-        "points": 8,
+        "callsign": "G4OBK",
     },
 ]
 
 _MOCK_ALERTS = [
     {
         "id": 78901,
-        "activatorCallsign": "W7RN",
+        "activatingCallsign": "W7RN",
+        "associationCode": "W7N",
         "summitCode": "W7N/WP-001",
-        "summitName": "Wheeler Peak",
+        "summitDetails": "Wheeler Peak, 3982m, 10 points",
         "dateActivated": "2026-03-05",
         "startTime": "1500",
         "endTime": "1800",
         "frequency": "14.285 SSB, 7.032 CW",
         "comments": "Weather permitting",
-        "association": "W7N",
-        "points": 10,
     },
 ]
 
@@ -88,11 +97,10 @@ _MOCK_SUMMIT = {
     "altFt": 12662,
     "latitude": 44.137,
     "longitude": -113.781,
-    "gridRef": "DN34cd",
+    "locator": "DN34cd",
     "points": 10,
-    "bonusPoints": 3,
-    "validFrom": "2012-07-01",
-    "validTo": "9999-12-31",
+    "validFrom": "2012-07-01T00:00:00Z",
+    "validTo": "2099-12-31T00:00:00Z",
     "activationCount": 15,
     "activationDate": "2025-08-15",
     "activationCall": "WB7ABP",
@@ -121,28 +129,9 @@ _MOCK_NEAR = [
     },
 ]
 
-_MOCK_ACTIVATOR = {
-    "callsign": "KI7MT",
-    "activations": 12,
-    "uniqueSummits": 8,
-    "totalQsos": 347,
-    "points": 64,
-    "bonusPoints": 12,
-    "totalPoints": 76,
-    "recentActivations": [
-        {
-            "summitCode": "W7I/SI-001",
-            "summitName": "Borah Peak",
-            "date": "2025-08-15",
-            "qsos": 32,
-            "points": 10,
-        },
-    ],
-}
-
 
 class SOTAClient:
-    """SOTA API client using SOTLAS and SOTALive."""
+    """SOTA API client — all endpoints via api2.sota.org.uk."""
 
     def __init__(self) -> None:
         self._lock = threading.Lock()
@@ -184,11 +173,33 @@ class SOTAClient:
         self._rate_limit()
         req = urllib.request.Request(url, method="GET")
         req.add_header("User-Agent", f"sota-mcp/{__version__}")
-        with urllib.request.urlopen(req, timeout=15) as resp:
-            body = resp.read().decode("utf-8", errors="replace")
+        try:
+            with urllib.request.urlopen(req, timeout=15) as resp:
+                body = resp.read().decode("utf-8", errors="replace")
+        except (urllib.error.URLError, urllib.error.HTTPError):
+            raise RuntimeError("SOTA API request failed")
         if not body or body.strip() == "":
             return None
         return json.loads(body)
+
+    # ------------------------------------------------------------------
+    # Internal helpers
+    # ------------------------------------------------------------------
+
+    def _get_region_summits(self, assoc: str, region: str) -> list[dict[str, Any]]:
+        """Fetch all summits in a region (cached 24h)."""
+        key = f"region:{assoc}:{region}"
+        cached = self._cache_get(key)
+        if cached is not None:
+            return cached
+
+        data = self._get_json(
+            f"{_BASE}/api/regions/{urllib.parse.quote(assoc)}"
+            f"/{urllib.parse.quote(region)}"
+        )
+        summits = (data or {}).get("summits", [])
+        self._cache_set(key, summits, _REGION_TTL)
+        return summits
 
     # ------------------------------------------------------------------
     # Public methods
@@ -209,7 +220,7 @@ class SOTAClient:
         if _is_mock():
             data = list(_MOCK_SPOTS)
         else:
-            data = self._get_json(f"{_SOTA_API}/api/spots/{hours}/all") or []
+            data = self._get_json(f"{_BASE}/api/spots/{hours}/all") or []
 
         # Client-side filtering
         results = []
@@ -244,13 +255,14 @@ class SOTAClient:
         if _is_mock():
             data = list(_MOCK_ALERTS)
         else:
-            data = self._get_json(f"{_SOTLAS}/alerts") or []
+            data = self._get_json(f"{_BASE}/api/alerts") or []
 
         # Client-side filtering
         if association:
             data = [
                 a for a in data
-                if (a.get("summitCode", "") or "").startswith(association.upper())
+                if (a.get("associationCode", "") or "").upper()
+                == association.upper()
             ]
 
         self._cache_set(key, data, _ALERTS_TTL)
@@ -267,15 +279,42 @@ class SOTAClient:
         if _is_mock():
             data = dict(_MOCK_SUMMIT)
         else:
-            # SOTLAS uses {association}/{code} format
-            # e.g., W7I/SI-001 → summits/W7I/SI-001
-            data = self._get_json(f"{_SOTLAS}/summits/{urllib.parse.quote(code, safe='/')}")
+            try:
+                data = self._get_json(
+                    f"{_BASE}/api/summits/"
+                    f"{urllib.parse.quote(code, safe='/')}"
+                )
+            except RuntimeError:
+                data = None
 
         if not data:
             return {"summitCode": code, "error": "Not found"}
 
         self._cache_set(key, data, _SUMMIT_TTL)
         return data
+
+    def _bbox_overlaps(
+        self,
+        lat: float,
+        lon: float,
+        radius_km: float,
+        min_lat: float | None,
+        max_lat: float | None,
+        min_lon: float | None,
+        max_lon: float | None,
+    ) -> bool:
+        """Check if a point+radius overlaps a bounding box (rough filter)."""
+        if any(v is None for v in (min_lat, max_lat, min_lon, max_lon)):
+            return True  # No bbox data — include to be safe
+        # ~111 km per degree latitude
+        margin = radius_km / 111.0
+        assert min_lat is not None and max_lat is not None
+        assert min_lon is not None and max_lon is not None
+        if lat + margin < min_lat or lat - margin > max_lat:
+            return False
+        if lon + margin < min_lon or lon - margin > max_lon:
+            return False
+        return True
 
     def summits_near(
         self,
@@ -284,7 +323,7 @@ class SOTAClient:
         radius_km: float = 50.0,
         limit: int = 20,
     ) -> list[dict[str, Any]]:
-        """Find summits near coordinates."""
+        """Find summits near coordinates using association bbox + haversine."""
         key = f"near:{latitude:.3f}:{longitude:.3f}:{radius_km}:{limit}"
         cached = self._cache_get(key)
         if cached is not None:
@@ -292,36 +331,68 @@ class SOTAClient:
 
         if _is_mock():
             data = list(_MOCK_NEAR)
-        else:
-            radius_m = int(radius_km * 1000)
-            params = urllib.parse.urlencode({
-                "lat": latitude,
-                "lon": longitude,
-                "limit": limit,
-                "maxDistance": radius_m,
-            })
-            data = self._get_json(f"{_SOTLAS}/summits/near?{params}") or []
+            self._cache_set(key, data, _NEAR_TTL)
+            return data
+
+        # Step 1: Get all associations (cached 24h after first call)
+        assoc_key = "associations:all"
+        associations = self._cache_get(assoc_key)
+        if associations is None:
+            associations = self._get_json(f"{_BASE}/api/associations") or []
+            self._cache_set(assoc_key, associations, _REGION_TTL)
+
+        # Step 2: Filter associations by bounding box (fast — no API calls)
+        nearby_assocs = []
+        for assoc in associations:
+            if self._bbox_overlaps(
+                latitude, longitude, radius_km,
+                assoc.get("minLat"), assoc.get("maxLat"),
+                assoc.get("minLong"), assoc.get("maxLong"),
+            ):
+                nearby_assocs.append(assoc.get("associationCode", ""))
+
+        # Step 3: For each matching association, get regions and summits
+        candidates: list[dict[str, Any]] = []
+        for assoc_code in nearby_assocs:
+            regions_data = self._get_json(
+                f"{_BASE}/api/associations/{urllib.parse.quote(assoc_code)}"
+            ) or {}
+            regions = regions_data.get("regions", [])
+            for reg in regions:
+                reg_code = reg.get("regionCode", "")
+                summits = self._get_region_summits(assoc_code, reg_code)
+                for s in summits:
+                    slat = s.get("latitude")
+                    slon = s.get("longitude")
+                    if slat is None or slon is None:
+                        continue
+                    dist = _haversine_km(latitude, longitude, slat, slon)
+                    if dist <= radius_km:
+                        candidates.append({
+                            "summitCode": s.get("summitCode", ""),
+                            "name": s.get("name", ""),
+                            "altM": s.get("altM"),
+                            "altFt": s.get("altFt"),
+                            "latitude": slat,
+                            "longitude": slon,
+                            "locator": s.get("locator", ""),
+                            "points": s.get("points"),
+                            "activationCount": s.get("activationCount"),
+                            "distance_km": round(dist, 1),
+                        })
+
+        # Sort by distance, limit results
+        candidates.sort(key=lambda x: x["distance_km"])
+        data = candidates[:limit]
 
         self._cache_set(key, data, _NEAR_TTL)
         return data
 
     def activator_stats(self, callsign: str) -> dict[str, Any]:
-        """Get activator profile and stats."""
+        """Get activator stats — not available via api2.sota.org.uk."""
         call = callsign.upper()
-        key = f"activator:{call}"
-        cached = self._cache_get(key)
-        if cached is not None:
-            return cached
-
-        if _is_mock():
-            data = dict(_MOCK_ACTIVATOR)
-        else:
-            data = self._get_json(
-                f"{_SOTLAS}/activators/{urllib.parse.quote(call)}"
-            )
-
-        if not data:
-            return {"callsign": call, "error": "Not found"}
-
-        self._cache_set(key, data, _STATS_TTL)
-        return data
+        return {
+            "callsign": call,
+            "error": "Activator stats are not available from the SOTA API. "
+                     "Visit https://www.sota.org.uk/ to look up activator profiles.",
+        }

@@ -3,7 +3,7 @@
 
 MCP server for [Summits on the Air (SOTA)](https://www.sota.org.uk/) — live spots, activation alerts, summit info, nearby summits, and activator stats through any MCP-compatible AI assistant.
 
-Part of the [QSO-Graph](https://qso-graph.io/) project. **No authentication required** — uses public [SOTLAS](https://sotl.as/) and [SOTA API](https://api2.sota.org.uk/) endpoints.
+Part of the [QSO-Graph](https://qso-graph.io/) project. **No authentication required** — uses the public [SOTA API](https://api2.sota.org.uk/) exclusively.
 
 ## Install
 
