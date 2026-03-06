@@ -44,7 +44,7 @@ def sota_spots(
 ) -> dict[str, Any]:
     """Get current and recent SOTA spots.
 
-    Returns live spot feed from SOTALive with summit details.
+    Returns live spot feed with summit details.
 
     Args:
         hours: Time window in hours (default 24).
