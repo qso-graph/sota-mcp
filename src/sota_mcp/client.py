@@ -13,7 +13,7 @@ from typing import Any
 from . import __version__
 
 _SOTLAS = "https://api.sotl.as"
-_SOTALIVE = "https://www.sotalive.tk"
+_SOTA_API = "https://api2.sota.org.uk"
 
 # Cache TTLs
 _SPOTS_TTL = 60.0  # 1 minute
@@ -209,17 +209,22 @@ class SOTAClient:
         if _is_mock():
             data = list(_MOCK_SPOTS)
         else:
-            data = self._get_json(f"{_SOTALIVE}/api/sotaspots?range={hours}") or []
+            data = self._get_json(f"{_SOTA_API}/api/spots/{hours}/all") or []
 
         # Client-side filtering
         results = []
         for spot in data:
             if association:
-                code = spot.get("summitCode", "") or spot.get("associationCode", "")
-                if not code.startswith(association.upper()):
+                assoc = spot.get("associationCode", "")
+                if assoc.upper() != association.upper():
                     continue
             if mode and spot.get("mode", "").upper() != mode.upper():
                 continue
+            # Build full summit code for display
+            assoc = spot.get("associationCode", "")
+            code = spot.get("summitCode", "")
+            if assoc and code and "/" not in code:
+                spot["summitCode"] = f"{assoc}/{code}"
             results.append(spot)
 
         self._cache_set(key, results, _SPOTS_TTL)
