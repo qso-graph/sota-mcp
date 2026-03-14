@@ -38,9 +38,9 @@ def _get_client() -> SOTAClient:
 
 @mcp.tool()
 def sota_spots(
-    hours: int = 24,
-    association: str = "",
-    mode: str = "",
+    hours: int | None = 24,
+    association: str | None = "",
+    mode: str | None = "",
 ) -> dict[str, Any]:
     """Get current and recent SOTA spots.
 
@@ -55,6 +55,10 @@ def sota_spots(
         List of spots with activator, summit, frequency, mode, and comments.
     """
     try:
+        # Coerce None → defaults (llama.cpp/mcpo sends null for optional params)
+        hours = hours if hours is not None else 24
+        association = association or ""
+        mode = mode or ""
         spots = _get_client().spots(
             hours=hours,
             association=association or None,
@@ -67,8 +71,8 @@ def sota_spots(
 
 @mcp.tool()
 def sota_alerts(
-    hours: int = 16,
-    association: str = "",
+    hours: int | None = 16,
+    association: str | None = "",
 ) -> dict[str, Any]:
     """Get upcoming SOTA activation alerts.
 
@@ -81,6 +85,9 @@ def sota_alerts(
         frequencies, and comments.
     """
     try:
+        # Coerce None → defaults (llama.cpp/mcpo sends null for optional params)
+        hours = hours if hours is not None else 16
+        association = association or ""
         alerts = _get_client().alerts(
             hours=hours,
             association=association or None,
@@ -111,8 +118,8 @@ def sota_summit_info(summit_code: str) -> dict[str, Any]:
 def sota_summits_near(
     latitude: float,
     longitude: float,
-    radius_km: float = 50.0,
-    limit: int = 20,
+    radius_km: float | None = 50.0,
+    limit: int | None = 20,
 ) -> dict[str, Any]:
     """Find SOTA summits near a geographic location.
 
@@ -127,6 +134,9 @@ def sota_summits_near(
         altitude, points, and activation count.
     """
     try:
+        # Coerce None → defaults (llama.cpp/mcpo sends null for optional params)
+        radius_km = radius_km if radius_km is not None else 50.0
+        limit = limit if limit is not None else 20
         summits = _get_client().summits_near(
             latitude=latitude,
             longitude=longitude,

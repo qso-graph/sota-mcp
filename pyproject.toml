@@ -1,6 +1,6 @@
 [project]
 name = "sota-mcp"
-version = "0.1.4"
+version = "0.1.5"
 description = "MCP server for Summits on the Air — summit lookup, spots, alerts, nearby summits"
 readme = "README.md"
 license = {text = "GPL-3.0-or-later"}
