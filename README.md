@@ -19,6 +19,7 @@ pip install sota-mcp
 | `sota_alerts` | Upcoming scheduled activation alerts |
 | `sota_summit_info` | Summit details by SOTA reference code |
 | `sota_summits_near` | Find summits near coordinates (geospatial search) |
+| `get_version_info` | Service version + upstream spec version (fleet identity attestation) |
 
 ## Quick Start
 

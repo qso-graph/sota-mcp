@@ -7,7 +7,7 @@ from typing import Any
 
 from fastmcp import FastMCP
 
-from . import __version__
+from . import __spec_version__, __version__
 from .client import SOTAClient
 
 mcp = FastMCP(
@@ -34,6 +34,32 @@ def _get_client() -> SOTAClient:
 # ---------------------------------------------------------------------------
 # Tools
 # ---------------------------------------------------------------------------
+
+
+def _version_info_payload() -> dict[str, Any]:
+    """Build the version info envelope. Pulled into a helper so tests can
+    call it directly without going through the FastMCP wrapper."""
+    return {
+        "service_name": "sota-mcp",
+        "service_version": __version__,
+        "spec_version": __spec_version__,
+    }
+
+
+@mcp.tool()
+def get_version_info() -> dict[str, Any]:
+    """Get sota-mcp service version and upstream spec version.
+
+    Returns the running PyPI version of sota-mcp and the SOTA api2
+    endpoint contract in use. Use this to confirm fleet alignment
+    across MCP deployments — agents can compare service_version and
+    spec_version across servers to detect drift without going outside
+    the MCP protocol.
+
+    Returns:
+        service_name, service_version (PyPI), and spec_version (SOTA api2).
+    """
+    return _version_info_payload()
 
 
 @mcp.tool()
