@@ -11,7 +11,8 @@ Part of the [QSO-Graph](https://qso-graph.io/) project. **No authentication requ
 ## Install
 
 ```bash
-pip install sota-mcp
+uvx sota-mcp            # run it; nothing to install
+pip install sota-mcp    # or install it into your own environment
 ```
 
 ## Tools
@@ -40,7 +41,8 @@ Add to `claude_desktop_config.json` (`~/Library/Application Support/Claude/` on 
 {
   "mcpServers": {
     "sota": {
-      "command": "sota-mcp"
+      "command": "uvx",
+      "args": ["sota-mcp"]
     }
   }
 }
@@ -54,7 +56,8 @@ Add to `.claude/settings.json`:
 {
   "mcpServers": {
     "sota": {
-      "command": "sota-mcp"
+      "command": "uvx",
+      "args": ["sota-mcp"]
     }
   }
 }
@@ -66,7 +69,8 @@ Add to `.claude/settings.json`:
 {
   "mcpServers": {
     "sota": {
-      "command": "sota-mcp"
+      "command": "uvx",
+      "args": ["sota-mcp"]
     }
   }
 }
@@ -80,7 +84,8 @@ Add to `.cursor/mcp.json` (project-level) or `~/.cursor/mcp.json` (global):
 {
   "mcpServers": {
     "sota": {
-      "command": "sota-mcp"
+      "command": "uvx",
+      "args": ["sota-mcp"]
     }
   }
 }
@@ -94,7 +99,8 @@ Add to `.vscode/mcp.json` in your workspace:
 {
   "servers": {
     "sota": {
-      "command": "sota-mcp"
+      "command": "uvx",
+      "args": ["sota-mcp"]
     }
   }
 }
@@ -108,11 +114,14 @@ Add to `~/.gemini/settings.json` (global) or `.gemini/settings.json` (project):
 {
   "mcpServers": {
     "sota": {
-      "command": "sota-mcp"
+      "command": "uvx",
+      "args": ["sota-mcp"]
     }
   }
 }
 ```
+
+Installed with pip instead? Use `"command": "sota-mcp"` in any config above.
 
 ### Ask questions
 
@@ -145,7 +154,8 @@ Then open the MCP Inspector at `http://localhost:8007`.
 ```bash
 git clone https://github.com/qso-graph/sota-mcp.git
 cd sota-mcp
-pip install -e .
+uv sync --group dev
+uv run pytest
 ```
 
 ## License
