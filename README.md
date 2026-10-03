@@ -12,7 +12,6 @@ Part of the [QSO-Graph](https://qso-graph.io/) project. **No authentication requ
 
 ```bash
 uvx sota-mcp            # run it; nothing to install
-pip install sota-mcp    # or install it into your own environment
 ```
 
 ## Tools
@@ -120,8 +119,6 @@ Add to `~/.gemini/settings.json` (global) or `.gemini/settings.json` (project):
   }
 }
 ```
-
-Installed with pip instead? Use `"command": "sota-mcp"` in any config above.
 
 ### Ask questions
 
