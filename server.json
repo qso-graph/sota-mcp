@@ -6,12 +6,12 @@
     "url": "https://github.com/qso-graph/sota-mcp",
     "source": "github"
   },
-  "version": "0.1.8",
+  "version": "0.1.9",
   "packages": [
     {
       "registryType": "pypi",
       "identifier": "sota-mcp",
-      "version": "0.1.8",
+      "version": "0.1.9",
       "transport": { "type": "stdio" }
     }
   ],
