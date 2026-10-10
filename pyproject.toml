@@ -4,10 +4,10 @@ version = "0.1.9"
 description = "MCP server for Summits on the Air — summit lookup, spots, alerts, nearby summits"
 readme = "README.md"
 license = {text = "GPL-3.0-or-later"}
-authors = [{name = "Greg Beam, KI7MT", email = "ki7mt@yahoo.com"}]
+authors = [{name = "Greg Beam, KI7MT", email = "maintainers@qso-graph.io"}]
 requires-python = ">=3.10"
 dependencies = [
-    "fastmcp>=3.0",
+    "fastmcp>=4.0,<5",
 ]
 keywords = [
     "amateur-radio", "ham-radio", "sota", "summits-on-the-air",
