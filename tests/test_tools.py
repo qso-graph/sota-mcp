@@ -9,13 +9,13 @@ Test IDs: SOTA-L2-001 through SOTA-L2-035
 from __future__ import annotations
 
 import os
+
 import pytest
 
 # Enable mock mode before importing anything
 os.environ["SOTA_MCP_MOCK"] = "1"
 
 from sota_mcp.client import SOTAClient, _haversine_km
-
 
 # ---------------------------------------------------------------------------
 # Fixtures
