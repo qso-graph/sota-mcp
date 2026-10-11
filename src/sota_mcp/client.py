@@ -46,7 +46,7 @@ def _haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
 # Mock data
 # ---------------------------------------------------------------------------
 
-_MOCK_SPOTS = [
+_MOCK_SPOTS: list[dict[str, Any]] = [
     {
         "id": 123456,
         "timeStamp": "2026-03-04T18:30:00",
@@ -73,7 +73,7 @@ _MOCK_SPOTS = [
     },
 ]
 
-_MOCK_ALERTS = [
+_MOCK_ALERTS: list[dict[str, Any]] = [
     {
         "id": 78901,
         "activatingCallsign": "W7RN",
@@ -88,7 +88,7 @@ _MOCK_ALERTS = [
     },
 ]
 
-_MOCK_SUMMIT = {
+_MOCK_SUMMIT: dict[str, Any] = {
     "summitCode": "W7I/SI-001",
     "name": "Borah Peak",
     "associationName": "USA - Idaho",
@@ -106,7 +106,7 @@ _MOCK_SUMMIT = {
     "activationCall": "WB7ABP",
 }
 
-_MOCK_NEAR = [
+_MOCK_NEAR: list[dict[str, Any]] = [
     {
         "summitCode": "W7I/SI-001",
         "name": "Borah Peak",
@@ -189,7 +189,7 @@ class SOTAClient:
     def _get_region_summits(self, assoc: str, region: str) -> list[dict[str, Any]]:
         """Fetch all summits in a region (cached 24h)."""
         key = f"region:{assoc}:{region}"
-        cached = self._cache_get(key)
+        cached: list[dict[str, Any]] | None = self._cache_get(key)
         if cached is not None:
             return cached
 
@@ -197,7 +197,9 @@ class SOTAClient:
             f"{_BASE}/api/regions/{urllib.parse.quote(assoc)}"
             f"/{urllib.parse.quote(region)}"
         )
-        summits = (data or {}).get("summits", [])
+        # Annotated: _get_json returns Any, so .get() on it is Any, and
+        # handing that back from a function promising a list is unchecked.
+        summits: list[dict[str, Any]] = (data or {}).get("summits", [])
         self._cache_set(key, summits, _REGION_TTL)
         return summits
 
@@ -213,7 +215,7 @@ class SOTAClient:
     ) -> list[dict[str, Any]]:
         """Get current and recent spots."""
         key = f"spots:{hours}:{association}:{mode}"
-        cached = self._cache_get(key)
+        cached: list[dict[str, Any]] | None = self._cache_get(key)
         if cached is not None:
             return cached
 
@@ -248,7 +250,7 @@ class SOTAClient:
     ) -> list[dict[str, Any]]:
         """Get upcoming activation alerts."""
         key = f"alerts:{hours}:{association}"
-        cached = self._cache_get(key)
+        cached: list[dict[str, Any]] | None = self._cache_get(key)
         if cached is not None:
             return cached
 
@@ -272,7 +274,7 @@ class SOTAClient:
         """Get summit details by SOTA reference code."""
         code = summit_code.upper()
         key = f"summit:{code}"
-        cached = self._cache_get(key)
+        cached: dict[str, Any] | None = self._cache_get(key)
         if cached is not None:
             return cached
 
@@ -325,7 +327,7 @@ class SOTAClient:
     ) -> list[dict[str, Any]]:
         """Find summits near coordinates using association bbox + haversine."""
         key = f"near:{latitude:.3f}:{longitude:.3f}:{radius_km}:{limit}"
-        cached = self._cache_get(key)
+        cached: list[dict[str, Any]] | None = self._cache_get(key)
         if cached is not None:
             return cached
 
