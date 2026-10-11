@@ -1880,7 +1880,7 @@ wheels = [
 
 [[package]]
 name = "sota-mcp"
-version = "0.1.9"
+version = "0.1.10"
 source = { editable = "." }
 dependencies = [
     { name = "fastmcp" },
