@@ -5,6 +5,54 @@ All notable changes to `sota-mcp` are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] — 2026-10-12
+
+**Upgrading:** a tool that fails now returns `isError: true` instead of a successful result whose
+payload contained an `error` key. Anything reading `result["error"]` should read the error flag.
+
+**Behaviour change worth knowing about:** `sota_summit_info` used to answer "Not found" whenever
+anything went wrong — SOTA unreachable, SOTA answering 500, or the summit genuinely not existing.
+It now tells those apart. A caller that treated "Not found" as proof a summit does not exist was
+being misled during an outage, and will now be told the request failed instead.
+
+
+- **`E501` is adopted** (#21, qso-graph-devel#70). It reported **one line**, in `tests/conftest.py`,
+  and it reflowed. No defect, no exemption, no `noqa` anywhere in the repo. Formatting and config
+  only; the suite is unchanged.
+
+- **`certifi` is carried, and the fetch verifies against it** (#20, qso-graph-devel#73). It used
+  `urllib` with no context, so it trusted whichever root store the running Python was built
+  against. On macOS that is `/etc/ssl/cert.pem`, a deliberately *reduced* OpenSSL file — 128 roots
+  against the system keychain's 158, and current rather than stale. **api2.sota.org.uk verifies
+  fine against it today**, so this was latent rather than an outage.
+- This server carries no credential, so a trust failure costs an answer rather than a secret — but
+  it would cost it **invisibly**, with the user told only that the request failed and nothing
+  pointing at trust. Verification is never disabled: `ssl.CERT_NONE` would accept any certificate
+  from anyone, which is a worse defect than the one being fixed.
+- **`urllib.error` is imported** rather than relied on as a side effect of importing
+  `urllib.request`. It was already being caught, after #22 added the 404 handling.
+- **`tests/test_release_gate.py`** asserts the gate suite imports nothing but the standard library
+  and pytest. solar-mcp's 0.3.0 publish failed on exactly that, from the same change.
+
+- **Fixed: a SOTA outage was reported as "no such summit"** (#22). `summit_info` wrapped its fetch
+  in `except RuntimeError: data = None` and then answered `{"summitCode": ..., "error": "Not
+  found"}`, so three different facts arrived identically: SOTA unreachable, SOTA answering 500, and
+  the summit genuinely not existing. The one reported was wrong for two of them, and a caller told
+  "no such summit" during an outage concludes the summit does not exist. **The catch was doing real
+  work** — SOTA answers 404 for an unknown summit — so 404 is now told apart from everything else
+  rather than the catch being deleted.
+- **Tool execution errors are flagged `isError`** (#22). Every tool returned `{"error": "..."}` on
+  failure, which reaches a client as a *successful* call whose payload happens to contain the word
+  "error". They now raise `ToolError`.
+- **A failed fetch names what it could not reach**, and why: `SOTA API request failed (<url>):
+  <reason>` rather than a bare `SOTA API request failed`.
+- **Every tool declares all four annotation hints** (#22). All five are read-only, non-destructive
+  and idempotent — this server writes nothing and holds no credential at all. `openWorldHint` is
+  true for the four that reach `api2.sota.org.uk` and false for `get_version_info`.
+- **`tests/test_mcp_conformance.py`** asserts all of the above, including both directions of the
+  outage/absence distinction: an unreachable API and a 500 must *not* say "no such summit", and a
+  404 and an empty body must.
+
 ## [0.1.10] — 2026-10-11
 
 - **ruff and mypy run in CI** (qso-graph-devel#66), as a job the `ci-all-green` gate requires.

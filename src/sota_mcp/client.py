@@ -5,15 +5,48 @@ from __future__ import annotations
 import json
 import math
 import os
+import ssl
 import threading
 import time
+import urllib.error
 import urllib.parse
 import urllib.request
+from functools import cache
 from typing import Any
+
+import certifi
 
 from . import __version__
 
 _BASE = "https://api2.sota.org.uk"
+
+
+@cache
+def _context() -> ssl.SSLContext:
+    """A verifying context with a current root set. Built once.
+
+    The roots come from ``certifi`` rather than whichever store the running
+    Python was built against. On macOS that distinction is real: Apple ships
+    ``/etc/ssl/cert.pem`` for OpenSSL — and therefore for Python — as a
+    deliberately *reduced* file, 128 roots against the system keychain's 158.
+    It is current, not stale. But a certificate chaining to one of the 30 it
+    omits fails for Python while ``curl`` to the same URL succeeds
+    (qso-graph-devel#73, found when meteor-mcp could not reach NASA at all).
+
+    api2.sota.org.uk verifies fine against the reduced file today, so this is a
+    latent defect rather than an outage. This server carries no credential, so
+    a trust failure here costs an answer rather than a secret — but it would
+    cost it invisibly: the user is told only that the request failed, with
+    nothing pointing at trust as the cause, and that is expensive to debug
+    under pressure.
+
+    Verification is never disabled. ``ssl.CERT_NONE`` or ``check_hostname =
+    False`` would also make a call "work", by accepting any certificate from
+    anyone — a worse defect than this one, and an invisible one. The fix is a
+    complete root set, not a relaxed check.
+    """
+    return ssl.create_default_context(cafile=certifi.where())
+
 
 # Cache TTLs
 _SPOTS_TTL = 60.0  # 1 minute
@@ -130,6 +163,17 @@ _MOCK_NEAR: list[dict[str, Any]] = [
 ]
 
 
+class NotFound(LookupError):
+    """SOTA answered 404: the thing asked for does not exist.
+
+    Its own type because the alternative is what this client did until #22 —
+    turn every failure into ``{"error": "Not found"}``. SOTA being unreachable,
+    SOTA answering 500, and a summit genuinely not existing are three different
+    facts, and reporting the third for all of them tells a caller a summit does
+    not exist when the truth is that nobody could ask.
+    """
+
+
 class SOTAClient:
     """SOTA API client — all endpoints via api2.sota.org.uk."""
 
@@ -174,10 +218,17 @@ class SOTAClient:
         req = urllib.request.Request(url, method="GET")
         req.add_header("User-Agent", f"sota-mcp/{__version__}")
         try:
-            with urllib.request.urlopen(req, timeout=15) as resp:
+            with urllib.request.urlopen(req, timeout=15, context=_context()) as resp:
                 body = resp.read().decode("utf-8", errors="replace")
-        except (urllib.error.URLError, urllib.error.HTTPError):
-            raise RuntimeError("SOTA API request failed")
+        except urllib.error.HTTPError as exc:
+            if exc.code == 404:
+                raise NotFound(f"SOTA has no record at {url}") from exc
+            # Named, because since #22 this message is what the client sees as
+            # the tool's error, and "SOTA API request failed" says neither what
+            # was asked for nor why.
+            raise RuntimeError(f"SOTA API request failed ({url}): HTTP {exc.code}") from exc
+        except urllib.error.URLError as exc:
+            raise RuntimeError(f"SOTA API request failed ({url}): {exc.reason}") from exc
         if not body or body.strip() == "":
             return None
         return json.loads(body)
@@ -281,16 +332,16 @@ class SOTAClient:
         if _is_mock():
             data = dict(_MOCK_SUMMIT)
         else:
-            try:
-                data = self._get_json(
-                    f"{_BASE}/api/summits/"
-                    f"{urllib.parse.quote(code, safe='/')}"
-                )
-            except RuntimeError:
-                data = None
+            # Only a 404 means "no such summit". A transport failure or a 500
+            # propagates, so the caller is told the lookup could not be made
+            # rather than that the summit does not exist.
+            data = self._get_json(
+                f"{_BASE}/api/summits/"
+                f"{urllib.parse.quote(code, safe='/')}"
+            )
 
         if not data:
-            return {"summitCode": code, "error": "Not found"}
+            raise NotFound(f"SOTA has no summit {code}.")
 
         self._cache_set(key, data, _SUMMIT_TTL)
         return data
