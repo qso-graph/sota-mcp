@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- **`E501` is adopted** (#21, qso-graph-devel#70). It reported **one line**, in `tests/conftest.py`,
+  and it reflowed. No defect, no exemption, no `noqa` anywhere in the repo. Formatting and config
+  only; the suite is unchanged.
+
 - **`certifi` is carried, and the fetch verifies against it** (#20, qso-graph-devel#73). It used
   `urllib` with no context, so it trusted whichever root store the running Python was built
   against. On macOS that is `/etc/ssl/cert.pem`, a deliberately *reduced* OpenSSL file — 128 roots
