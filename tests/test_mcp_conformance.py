@@ -108,7 +108,7 @@ class TestAnOutageIsNotAnAbsence:
         import urllib.error
         import urllib.request
 
-        client = self._client(monkeypatch)
+        self._client(monkeypatch)
         monkeypatch.setattr(urllib.request, "urlopen", lambda *a, **k: (_ for _ in ()).throw(
             urllib.error.URLError("Connection refused")))
         with pytest.raises(ToolError) as caught:
@@ -122,7 +122,7 @@ class TestAnOutageIsNotAnAbsence:
         import urllib.error
         import urllib.request
 
-        client = self._client(monkeypatch)
+        self._client(monkeypatch)
 
         def boom(*_a, **_k):
             raise urllib.error.HTTPError("u", 500, "Server Error", {}, None)  # type: ignore[arg-type]
@@ -143,7 +143,7 @@ class TestAnOutageIsNotAnAbsence:
         import urllib.error
         import urllib.request
 
-        client = self._client(monkeypatch)
+        self._client(monkeypatch)
 
         def missing(*_a, **_k):
             raise urllib.error.HTTPError("u", 404, "Not Found", {}, None)  # type: ignore[arg-type]
