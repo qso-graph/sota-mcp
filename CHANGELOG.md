@@ -5,6 +5,27 @@ All notable changes to `sota-mcp` are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+- **Fixed: a SOTA outage was reported as "no such summit"** (#22). `summit_info` wrapped its fetch
+  in `except RuntimeError: data = None` and then answered `{"summitCode": ..., "error": "Not
+  found"}`, so three different facts arrived identically: SOTA unreachable, SOTA answering 500, and
+  the summit genuinely not existing. The one reported was wrong for two of them, and a caller told
+  "no such summit" during an outage concludes the summit does not exist. **The catch was doing real
+  work** — SOTA answers 404 for an unknown summit — so 404 is now told apart from everything else
+  rather than the catch being deleted.
+- **Tool execution errors are flagged `isError`** (#22). Every tool returned `{"error": "..."}` on
+  failure, which reaches a client as a *successful* call whose payload happens to contain the word
+  "error". They now raise `ToolError`.
+- **A failed fetch names what it could not reach**, and why: `SOTA API request failed (<url>):
+  <reason>` rather than a bare `SOTA API request failed`.
+- **Every tool declares all four annotation hints** (#22). All five are read-only, non-destructive
+  and idempotent — this server writes nothing and holds no credential at all. `openWorldHint` is
+  true for the four that reach `api2.sota.org.uk` and false for `get_version_info`.
+- **`tests/test_mcp_conformance.py`** asserts all of the above, including both directions of the
+  outage/absence distinction: an unreachable API and a 500 must *not* say "no such summit", and a
+  404 and an empty body must.
+
 ## [0.1.10] — 2026-10-11
 
 - **ruff and mypy run in CI** (qso-graph-devel#66), as a job the `ci-all-green` gate requires.
