@@ -5,7 +5,16 @@ All notable changes to `sota-mcp` are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.2.0] — 2026-10-12
+
+**Upgrading:** a tool that fails now returns `isError: true` instead of a successful result whose
+payload contained an `error` key. Anything reading `result["error"]` should read the error flag.
+
+**Behaviour change worth knowing about:** `sota_summit_info` used to answer "Not found" whenever
+anything went wrong — SOTA unreachable, SOTA answering 500, or the summit genuinely not existing.
+It now tells those apart. A caller that treated "Not found" as proof a summit does not exist was
+being misled during an outage, and will now be told the request failed instead.
+
 
 - **`E501` is adopted** (#21, qso-graph-devel#70). It reported **one line**, in `tests/conftest.py`,
   and it reflowed. No defect, no exemption, no `noqa` anywhere in the repo. Formatting and config
