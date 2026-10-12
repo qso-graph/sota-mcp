@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- **`certifi` is carried, and the fetch verifies against it** (#20, qso-graph-devel#73). It used
+  `urllib` with no context, so it trusted whichever root store the running Python was built
+  against. On macOS that is `/etc/ssl/cert.pem`, a deliberately *reduced* OpenSSL file — 128 roots
+  against the system keychain's 158, and current rather than stale. **api2.sota.org.uk verifies
+  fine against it today**, so this was latent rather than an outage.
+- This server carries no credential, so a trust failure costs an answer rather than a secret — but
+  it would cost it **invisibly**, with the user told only that the request failed and nothing
+  pointing at trust. Verification is never disabled: `ssl.CERT_NONE` would accept any certificate
+  from anyone, which is a worse defect than the one being fixed.
+- **`urllib.error` is imported** rather than relied on as a side effect of importing
+  `urllib.request`. It was already being caught, after #22 added the 404 handling.
+- **`tests/test_release_gate.py`** asserts the gate suite imports nothing but the standard library
+  and pytest. solar-mcp's 0.3.0 publish failed on exactly that, from the same change.
+
 - **Fixed: a SOTA outage was reported as "no such summit"** (#22). `summit_info` wrapped its fetch
   in `except RuntimeError: data = None` and then answered `{"summitCode": ..., "error": "Not
   found"}`, so three different facts arrived identically: SOTA unreachable, SOTA answering 500, and
