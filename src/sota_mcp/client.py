@@ -130,6 +130,17 @@ _MOCK_NEAR: list[dict[str, Any]] = [
 ]
 
 
+class NotFound(LookupError):
+    """SOTA answered 404: the thing asked for does not exist.
+
+    Its own type because the alternative is what this client did until #22 —
+    turn every failure into ``{"error": "Not found"}``. SOTA being unreachable,
+    SOTA answering 500, and a summit genuinely not existing are three different
+    facts, and reporting the third for all of them tells a caller a summit does
+    not exist when the truth is that nobody could ask.
+    """
+
+
 class SOTAClient:
     """SOTA API client — all endpoints via api2.sota.org.uk."""
 
@@ -176,8 +187,15 @@ class SOTAClient:
         try:
             with urllib.request.urlopen(req, timeout=15) as resp:
                 body = resp.read().decode("utf-8", errors="replace")
-        except (urllib.error.URLError, urllib.error.HTTPError):
-            raise RuntimeError("SOTA API request failed")
+        except urllib.error.HTTPError as exc:
+            if exc.code == 404:
+                raise NotFound(f"SOTA has no record at {url}") from exc
+            # Named, because since #22 this message is what the client sees as
+            # the tool's error, and "SOTA API request failed" says neither what
+            # was asked for nor why.
+            raise RuntimeError(f"SOTA API request failed ({url}): HTTP {exc.code}") from exc
+        except urllib.error.URLError as exc:
+            raise RuntimeError(f"SOTA API request failed ({url}): {exc.reason}") from exc
         if not body or body.strip() == "":
             return None
         return json.loads(body)
@@ -281,16 +299,16 @@ class SOTAClient:
         if _is_mock():
             data = dict(_MOCK_SUMMIT)
         else:
-            try:
-                data = self._get_json(
-                    f"{_BASE}/api/summits/"
-                    f"{urllib.parse.quote(code, safe='/')}"
-                )
-            except RuntimeError:
-                data = None
+            # Only a 404 means "no such summit". A transport failure or a 500
+            # propagates, so the caller is told the lookup could not be made
+            # rather than that the summit does not exist.
+            data = self._get_json(
+                f"{_BASE}/api/summits/"
+                f"{urllib.parse.quote(code, safe='/')}"
+            )
 
         if not data:
-            return {"summitCode": code, "error": "Not found"}
+            raise NotFound(f"SOTA has no summit {code}.")
 
         self._cache_set(key, data, _SUMMIT_TTL)
         return data

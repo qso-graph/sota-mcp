@@ -6,6 +6,7 @@ import sys
 from typing import Any
 
 from fastmcp import FastMCP
+from fastmcp.exceptions import ToolError
 
 from . import __spec_version__, __version__
 from .client import SOTAClient
@@ -35,6 +36,29 @@ def _get_client() -> SOTAClient:
 # Tools
 # ---------------------------------------------------------------------------
 
+# MCP 2026-07-28 tool annotations. The defaults are pessimistic — a tool that
+# declares nothing is advertised as destructive, non-idempotent and open-world,
+# and the specification tells a client to keep a human in the loop for an
+# operation like that. Every tool here reads SOTA's public API: nothing is
+# written, and this server holds no credential at all.
+#
+# openWorldHint is true for the four that reach api2.sota.org.uk and false for
+# get_version_info. They are a client's UX hint and never a security control.
+_READS_SOTA = {
+    "readOnlyHint": True,
+    "destructiveHint": False,
+    "idempotentHint": True,
+    "openWorldHint": True,
+}
+_ANSWERS_FROM_THE_PACKAGE = {
+    "readOnlyHint": True,
+    "destructiveHint": False,
+    "idempotentHint": True,
+    "openWorldHint": False,
+}
+
+
+
 
 def _version_info_payload() -> dict[str, Any]:
     """Build the version info envelope. Pulled into a helper so tests can
@@ -46,7 +70,7 @@ def _version_info_payload() -> dict[str, Any]:
     }
 
 
-@mcp.tool()
+@mcp.tool(annotations=_ANSWERS_FROM_THE_PACKAGE)
 def get_version_info() -> dict[str, Any]:
     """Get sota-mcp service version and upstream spec version.
 
@@ -62,7 +86,7 @@ def get_version_info() -> dict[str, Any]:
     return _version_info_payload()
 
 
-@mcp.tool()
+@mcp.tool(annotations=_READS_SOTA)
 def sota_spots(
     hours: int | None = 24,
     association: str | None = "",
@@ -92,10 +116,10 @@ def sota_spots(
         )
         return {"total": len(spots), "spots": spots}
     except Exception as e:
-        return {"error": str(e)}
+        raise ToolError(str(e)) from e
 
 
-@mcp.tool()
+@mcp.tool(annotations=_READS_SOTA)
 def sota_alerts(
     hours: int | None = 16,
     association: str | None = "",
@@ -120,10 +144,10 @@ def sota_alerts(
         )
         return {"total": len(alerts), "alerts": alerts}
     except Exception as e:
-        return {"error": str(e)}
+        raise ToolError(str(e)) from e
 
 
-@mcp.tool()
+@mcp.tool(annotations=_READS_SOTA)
 def sota_summit_info(summit_code: str) -> dict[str, Any]:
     """Get detailed summit information by SOTA reference code.
 
@@ -137,10 +161,10 @@ def sota_summit_info(summit_code: str) -> dict[str, Any]:
     try:
         return _get_client().summit_info(summit_code)
     except Exception as e:
-        return {"error": str(e)}
+        raise ToolError(str(e)) from e
 
 
-@mcp.tool()
+@mcp.tool(annotations=_READS_SOTA)
 def sota_summits_near(
     latitude: float,
     longitude: float,
@@ -171,7 +195,7 @@ def sota_summits_near(
         )
         return {"total": len(summits), "summits": summits}
     except Exception as e:
-        return {"error": str(e)}
+        raise ToolError(str(e)) from e
 
 
 # ---------------------------------------------------------------------------
