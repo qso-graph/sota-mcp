@@ -203,8 +203,25 @@ def sota_summits_near(
 # ---------------------------------------------------------------------------
 
 
+USAGE = """\
+usage: sota-mcp [--transport stdio|streamable-http] [--port N] [--version] [--help]
+
+An MCP server: an AI app (Claude Desktop, Claude Code, ...) starts it and talks
+to it over stdio. Run on its own it waits for that app; press Ctrl-C to stop.
+Set up a client: https://github.com/qso-graph/sota-mcp#quick-start
+"""
+
+
 def main() -> None:
     """Run the sota-mcp server."""
+    # Without this the script ignored both flags and bound stdio, so
+    # `--help` left a user watching a banner and a hung terminal.
+    if any(a in ("-h", "--help") for a in sys.argv[1:]):
+        print(USAGE, end="")
+        return
+    if "--version" in sys.argv[1:]:
+        print(f"sota-mcp {__version__}")
+        return
     transport = "stdio"
     port = 8007
     for i, arg in enumerate(sys.argv[1:], 1):
