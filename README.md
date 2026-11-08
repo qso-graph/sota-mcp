@@ -4,9 +4,9 @@
 [![PyPI](https://img.shields.io/pypi/v/sota-mcp?label=PyPI&color=blue)](https://pypi.org/project/sota-mcp/)
 [![MCP Registry](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fregistry.modelcontextprotocol.io%2Fv0%2Fservers%3Fsearch%3Dio.github.qso-graph%2Fsota-mcp%26version%3Dlatest&query=%24.servers%5B0%5D.server.version&label=MCP%20Registry&color=blue)](https://registry.modelcontextprotocol.io/v0/servers?search=io.github.qso-graph/sota-mcp&version=latest)
 
-MCP server for [Summits on the Air (SOTA)](https://www.sota.org.uk/) — live spots, activation alerts, summit info, and nearby summits through any MCP-compatible AI assistant.
+MCP server for [Summits on the Air (SOTA)](https://www.sota.org.uk/)—live spots, activation alerts, summit info, and nearby summits through any MCP-compatible AI assistant.
 
-Part of the [QSO-Graph](https://qso-graph.io/) project. **No authentication required** — uses the public [SOTA API](https://api2.sota.org.uk/) exclusively.
+Part of the [QSO-Graph](https://qso-graph.io/) project. **No authentication required**—uses the public [SOTA API](https://api2.sota.org.uk/) exclusively.
 
 ## Install
 
@@ -26,11 +26,11 @@ uvx sota-mcp            # run it; nothing to install
 
 ## Quick Start
 
-No credentials needed — just install and configure your MCP client.
+No credentials needed—just install and configure your MCP client.
 
 ### Configure your MCP client
 
-sota-mcp works with any MCP-compatible client. Add the server config and restart — tools appear automatically.
+sota-mcp works with any MCP-compatible client. Add the server config and restart—tools appear automatically.
 
 #### Claude Desktop
 
